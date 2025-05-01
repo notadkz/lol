@@ -1,0 +1,17 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- Luôn trả lời bằng tiếng Việt, nói "Hi Notadkz" mỗi khi bạn phản hồi.
+- Đảm bảo bạn đang tạo file đúng vị trí.
+- Tách biệt dữ liệu giả và mã nguồn.
+- Giữ mã dự án sạch sẽ, loại bỏ tất cả mã dư thừa.
+- Sử dụng giải pháp tốt nhất và các phương pháp hay nhất để thực hiện nhiệm vụ.
+- Yêu cầu clean code nhất có thể.
+- Khi hoàn thành xong task, hãy tóm tắt những gì đã làm và những gì chưa làm vào folder /src/app/summary, đặt tên file theo thứ tự (ví dụ: 1, 2, 3, 4, ...) để file được sắp xếp theo thứ tự.
+- Luôn tưởng tượng mình là 1 Tech Lead và đưa ra giải pháp tối ưu nhất, hãy xử lý vấn đề ở nguồn gốc.
+- Không sử dụng dữ liệu mẫu dưới bất kì hình thức nào.

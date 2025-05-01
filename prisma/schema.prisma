@@ -1,0 +1,685 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// Người dùng hệ thống
+model User {
+  id          Int       @id @default(autoincrement())
+  email       String    @unique
+  password    String
+  name        String?
+  phone       String?
+  isAdmin     Boolean   @default(false)
+  balance     Decimal   @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastLogin   DateTime?
+  accountType String    @default("REGULAR") // REGULAR, VIP, PREMIUM
+
+  // OAuth và NextAuth
+  emailVerified DateTime?
+  image         String? // Avatar từ provider như Google
+
+  // Relationships
+  boughtAccounts     GameAccount[]       @relation("BoughtAccounts")
+  topUpTransactions  TopUpTransaction[] // Các giao dịch nạp tiền
+  withdrawalRequests WithdrawalRequest[] // Các yêu cầu rút tiền
+  transactionHistory TransactionHistory[] // Lịch sử giao dịch
+  orders             Order[] // Các đơn hàng của người dùng
+  verificationTokens VerificationToken[]
+  passwordResets     PasswordReset[]
+  notifications      Notification[]
+  stats              UserStat?
+  wishlists          Wishlist[]
+  reviews            Review[]
+  userCoupons        UserCoupon[]
+  paymentMethods     PaymentMethod[]
+  refundRequests     RefundRequest[]
+  supportTickets     SupportTicket[]
+  sellerAccounts     GameAccount[]       @relation("SellerAccounts")
+
+  // NextAuth relationships
+  accounts      Account[]      @relation("UserAccounts")
+  oauthAccounts OAuthAccount[] @relation("UserOAuthAccounts")
+  authSessions  Session[]
+  listings      Listing[]      @relation("UserListings")
+}
+
+// Bậc rank trong game
+enum Rank {
+  UNRANKED
+  SAT
+  DONG
+  BAC
+  VANG
+  BACH_KIM
+  KIM_CUONG
+  CAO_THU
+  DAI_CAO_THU
+  THACH_DAU
+}
+
+// Trạng thái tài khoản
+enum AccountStatus {
+  AVAILABLE // Có sẵn để bán
+  SOLD // Đã bán
+  HIDDEN // Ẩn, không hiển thị
+  RESERVED // Đang đặt giữ
+}
+
+// Trạng thái giao dịch nạp tiền
+enum TopUpStatus {
+  PENDING // Đang xử lý
+  SUCCESS // Thành công
+  FAILED // Thất bại
+}
+
+// Trạng thái đơn hàng
+enum OrderStatus {
+  PENDING // Đang xử lý
+  COMPLETED // Hoàn thành
+  CANCELLED // Đã hủy
+  REFUNDED // Đã hoàn tiền
+}
+
+// Đổi tên model Account thành GameAccount
+model GameAccount {
+  id            Int       @id @default(autoincrement())
+  username      String
+  password      String
+  email         String?
+  emailPassword String?
+  soloRank      Rank      @default(UNRANKED)
+  flexRank      Rank      @default(UNRANKED)
+  tftRank       Rank      @default(UNRANKED)
+  level         Int       @default(30)
+  blueEssence   Int       @default(0)
+  riotPoints    Int       @default(0)
+  championCount Int       @default(0)
+  skinCount     Int       @default(0)
+  chromaCount   Int       @default(0)
+  price         Float
+  originalPrice Float?
+  discount      Float?
+  status        String    @default("AVAILABLE")
+  description   String?   @db.Text
+  imageUrls     String?   @db.Text // Lưu dạng JSON string
+  isFeatured    Boolean   @default(false)
+  featuredUntil DateTime?
+  viewCount     Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  seller   User?  @relation("SellerAccounts", fields: [sellerId], references: [id])
+  sellerId Int?
+  buyer    User?  @relation("BoughtAccounts", fields: [buyerId], references: [id])
+  buyerId  Int?
+  order    Order?
+  orderId  Int?   @unique
+
+  // Các relationship khác
+  wishlists Wishlist[] @relation("GameAccountWishlists")
+  reviews   Review[]   @relation("GameAccountReviews")
+  listing   Listing?
+
+  // Tài nguyên game
+  ownedChampions AccountChampion[]
+  ownedSkins     AccountSkin[]
+  ownedChromas   AccountChroma[]
+  ownedWards     AccountWard[]
+  ownedEmotes    AccountEmote[]
+  ownedIcons     AccountIcon[]
+}
+
+// Tài khoản ngân hàng của hệ thống
+model BankAccount {
+  id            Int      @id @default(autoincrement())
+  bankName      String // Tên ngân hàng
+  accountNumber String // Số tài khoản
+  accountHolder String // Tên chủ tài khoản
+  branch        String? // Chi nhánh
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relationships
+  transactions TopUpTransaction[] // Các giao dịch nạp tiền qua tài khoản này
+}
+
+// API settings for bank integration
+model BankApiConfig {
+  id         Int       @id @default(autoincrement())
+  bankId     Int // ID tương ứng với BankAccount
+  apiKey     String // Khóa API
+  apiSecret  String // Secret API
+  webhookUrl String? // URL webhook để nhận thông báo
+  isActive   Boolean   @default(true)
+  lastSync   DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+// Thêm enum TransactionType cho bảng TransactionHistory
+enum TransactionType {
+  TOPUP       // Nạp tiền
+  WITHDRAWAL  // Rút tiền
+  PURCHASE    // Mua hàng
+  REFUND      // Hoàn tiền
+  COMMISSION  // Hoa hồng (nếu có)
+  ADMIN       // Điều chỉnh bởi admin
+}
+
+// Trạng thái yêu cầu rút tiền
+enum WithdrawalStatus {
+  PENDING     // Đang chờ xử lý
+  PROCESSING  // Đang xử lý
+  COMPLETED   // Đã hoàn thành
+  REJECTED    // Đã từ chối
+}
+
+// Thêm enum TransactionStatus
+enum TransactionStatus {
+  PENDING    // Đang chờ xử lý
+  SUCCESS    // Thành công
+  FAILED     // Thất bại
+  CANCELLED  // Đã hủy
+}
+
+// Cập nhật model TopUpTransaction để thêm trường reference
+model TopUpTransaction {
+  id              Int         @id @default(autoincrement())
+  userId          Int
+  amount          Decimal
+  bankAccountId   Int
+  reference       String      // Mã tham chiếu đơn nạp (NAP_USERNAME_123)
+  transactionCode String      // Mã giao dịch từ ngân hàng
+  bankReference   String?     // Mã tham chiếu từ ngân hàng
+  transferContent String?     // Nội dung chuyển khoản
+  status          TopUpStatus
+  processingNote  String?     // Ghi chú khi xử lý
+  transferTime    DateTime?   // Thời gian giao dịch theo ngân hàng
+  apiResponse     String?     @db.Text // Phản hồi từ API ngân hàng (JSON)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relationships
+  user        User        @relation(fields: [userId], references: [id])
+  bankAccount BankAccount @relation(fields: [bankAccountId], references: [id])
+  transactions TransactionHistory[] @relation("TopUpTransactions")
+}
+
+// Thêm model WithdrawalRequest để xử lý rút tiền
+model WithdrawalRequest {
+  id              Int              @id @default(autoincrement())
+  userId          Int
+  amount          Decimal
+  status          WithdrawalStatus @default(PENDING)
+  reference       String           // Mã tham chiếu đơn rút (RUT_USERNAME_123)
+  bankName        String           // Tên ngân hàng
+  accountNumber   String           // Số tài khoản
+  accountHolder   String           // Tên chủ tài khoản
+  processingNote  String?          @db.Text // Ghi chú xử lý
+  adminId         Int?             // ID admin xử lý
+  processedAt     DateTime?        // Thời gian xử lý
+  completedAt     DateTime?        // Thời gian hoàn thành
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  // Relationships
+  user         User                 @relation(fields: [userId], references: [id])
+  transactions TransactionHistory[] @relation("WithdrawalTransactions")
+}
+
+// Thêm bảng TransactionHistory
+model TransactionHistory {
+  id                  Int               @id @default(autoincrement())
+  userId              Int
+  amount              Decimal         // Số tiền giao dịch (dương: cộng tiền, âm: trừ tiền)
+  balanceBefore       Decimal         // Số dư trước giao dịch
+  balanceAfter        Decimal         // Số dư sau giao dịch
+  type                TransactionType // Loại giao dịch
+  description         String          // Mô tả giao dịch
+  reference           String?         // Mã tham chiếu chung
+  status              TransactionStatus @default(PENDING) // Trạng thái giao dịch
+  topUpTransactionId  Int?            // ID giao dịch nạp tiền (nếu có)
+  withdrawalRequestId Int?            // ID yêu cầu rút tiền (nếu có)
+  orderId             Int?            // ID đơn hàng (nếu có)
+  refundRequestId     Int?            // ID yêu cầu hoàn tiền (nếu có)
+  adminId             Int?            // ID admin thực hiện (nếu là ADMIN)
+  adminNote           String?         @db.Text // Ghi chú của admin
+  metadata            String?         @db.Text // Dữ liệu thêm (JSON)
+  createdAt           DateTime        @default(now())
+
+  // Relationships
+  user               User               @relation(fields: [userId], references: [id])
+  topUpTransaction   TopUpTransaction?  @relation("TopUpTransactions", fields: [topUpTransactionId], references: [id])
+  withdrawalRequest  WithdrawalRequest? @relation("WithdrawalTransactions", fields: [withdrawalRequestId], references: [id])
+  order              Order?             @relation("OrderTransactions", fields: [orderId], references: [id])
+  refundRequest      RefundRequest?     @relation("RefundTransactions", fields: [refundRequestId], references: [id])
+}
+
+// Đơn hàng mua tài khoản
+model Order {
+  id            Int               @id @default(autoincrement())
+  buyerId       Int
+  accountId     Int               @unique
+  totalAmount   Decimal           @db.Decimal(10, 2)
+  status        OrderStatus       @default(PENDING)
+  paymentMethod PaymentMethodType @default(MOMO)
+  paymentId     String? // ID thanh toán từ cổng thanh toán
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relationships
+  buyer           User                 @relation(fields: [buyerId], references: [id])
+  account         GameAccount          @relation(fields: [accountId], references: [id])
+  reviews         Review[]             @relation("OrderReviews")
+  refundRequests  RefundRequest[]      @relation("OrderRefunds")
+  transactions    TransactionHistory[] @relation("OrderTransactions")
+}
+
+// Bảo mật và xác thực
+model VerificationToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+}
+
+model PasswordReset {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expires   DateTime
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+}
+
+// Quản lý nội dung và hỗ trợ
+model FAQ {
+  id        Int      @id @default(autoincrement())
+  question  String
+  answer    String   @db.Text
+  category  String
+  order     Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Announcement {
+  id          Int       @id @default(autoincrement())
+  title       String
+  content     String    @db.Text
+  isImportant Boolean   @default(false)
+  startDate   DateTime
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Tính năng marketplace nâng cao
+model Wishlist {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  accountId Int
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user    User        @relation(fields: [userId], references: [id])
+  account GameAccount @relation("GameAccountWishlists", fields: [accountId], references: [id])
+
+  @@unique([userId, accountId])
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  accountId Int
+  orderId   Int
+  rating    Int // 1-5 stars
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user    User        @relation(fields: [userId], references: [id])
+  account GameAccount @relation("GameAccountReviews", fields: [accountId], references: [id])
+  order   Order       @relation("OrderReviews", fields: [orderId], references: [id])
+}
+
+// Hệ thống khuyến mãi
+model Coupon {
+  id            Int       @id @default(autoincrement())
+  code          String    @unique
+  discountType  String // PERCENTAGE, FIXED_AMOUNT
+  discountValue Decimal
+  minPurchase   Decimal?
+  maxDiscount   Decimal?
+  startDate     DateTime
+  endDate       DateTime?
+  usageLimit    Int? // Số lượng lần sử dụng tối đa
+  usedCount     Int       @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  userCoupons UserCoupon[]
+}
+
+model UserCoupon {
+  userId   Int
+  couponId Int
+  usedAt   DateTime?
+
+  // Relationships
+  user   User   @relation(fields: [userId], references: [id])
+  coupon Coupon @relation(fields: [couponId], references: [id])
+
+  @@id([userId, couponId])
+}
+
+// Hệ thống thông báo và thống kê
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  content   String
+  isRead    Boolean  @default(false)
+  type      String // SYSTEM, ORDER, PROMO, PAYMENT
+  createdAt DateTime @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+}
+
+model UserStat {
+  userId           Int       @id
+  totalSpent       Decimal   @default(0)
+  totalOrders      Int       @default(0)
+  lastLoginAt      DateTime?
+  registrationDate DateTime  @default(now())
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+}
+
+// Phương thức thanh toán người dùng đã lưu
+model PaymentMethod {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  type          String // BANK, EWALLET
+  bankName      String?
+  accountName   String?
+  accountNumber String?
+  isDefault     Boolean   @default(false)
+  lastUsed      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  user User @relation(fields: [userId], references: [id])
+}
+
+// Yêu cầu hoàn tiền
+model RefundRequest {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  orderId   Int
+  reason    String   @db.Text
+  status    String // PENDING, APPROVED, REJECTED
+  amount    Decimal
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relationships
+  user         User                 @relation(fields: [userId], references: [id])
+  order        Order                @relation("OrderRefunds", fields: [orderId], references: [id])
+  transactions TransactionHistory[] @relation("RefundTransactions")
+}
+
+// Hệ thống hỗ trợ
+model SupportTicket {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  subject   String
+  status    String // OPEN, PENDING, RESOLVED, CLOSED
+  priority  String // LOW, MEDIUM, HIGH
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime?
+
+  // Relationships
+  user     User            @relation(fields: [userId], references: [id])
+  messages TicketMessage[]
+}
+
+model TicketMessage {
+  id          Int      @id @default(autoincrement())
+  ticketId    Int
+  userId      Int? // NULL nếu là tin nhắn từ admin
+  content     String   @db.Text
+  isFromAdmin Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  // Relationships
+  ticket SupportTicket @relation(fields: [ticketId], references: [id])
+}
+
+// MASTER DATA MODELS
+
+// Tướng trong LoL
+model Champion {
+  id       Int               @id @default(autoincrement())
+  name     String            @unique
+  imageUrl String?
+  accounts AccountChampion[]
+}
+
+// Trang phục trong LoL
+model Skin {
+  id         Int           @id @default(autoincrement())
+  name       String
+  championId Int
+  imageUrl   String?
+  accounts   AccountSkin[]
+}
+
+// Đa sắc trong LoL
+model Chroma {
+  id       Int             @id @default(autoincrement())
+  name     String
+  skinId   Int
+  imageUrl String?
+  accounts AccountChroma[]
+}
+
+// Mẫu mắt trong LoL
+model Ward {
+  id       Int           @id @default(autoincrement())
+  name     String        @unique
+  imageUrl String?
+  accounts AccountWard[]
+}
+
+// Biểu cảm trong LoL
+model Emote {
+  id       Int            @id @default(autoincrement())
+  name     String         @unique
+  imageUrl String?
+  accounts AccountEmote[]
+}
+
+// Biểu tượng trong LoL
+model Icon {
+  id       Int           @id @default(autoincrement())
+  name     String        @unique
+  imageUrl String?
+  accounts AccountIcon[]
+}
+
+// JOINING TABLES FOR MANY-TO-MANY RELATIONSHIPS
+
+// Tướng của tài khoản
+model AccountChampion {
+  id         Int         @id @default(autoincrement())
+  accountId  Int
+  championId Int
+  account    GameAccount @relation(fields: [accountId], references: [id])
+  champion   Champion    @relation(fields: [championId], references: [id])
+}
+
+// Trang phục của tài khoản
+model AccountSkin {
+  id        Int         @id @default(autoincrement())
+  accountId Int
+  skinId    Int
+  account   GameAccount @relation(fields: [accountId], references: [id])
+  skin      Skin        @relation(fields: [skinId], references: [id])
+}
+
+// Đa sắc của tài khoản
+model AccountChroma {
+  id        Int         @id @default(autoincrement())
+  accountId Int
+  chromaId  Int
+  account   GameAccount @relation(fields: [accountId], references: [id])
+  chroma    Chroma      @relation(fields: [chromaId], references: [id])
+}
+
+// Mẫu mắt của tài khoản
+model AccountWard {
+  id        Int         @id @default(autoincrement())
+  accountId Int
+  wardId    Int
+  account   GameAccount @relation(fields: [accountId], references: [id])
+  ward      Ward        @relation(fields: [wardId], references: [id])
+}
+
+// Biểu cảm của tài khoản
+model AccountEmote {
+  id        Int         @id @default(autoincrement())
+  accountId Int
+  emoteId   Int
+  account   GameAccount @relation(fields: [accountId], references: [id])
+  emote     Emote       @relation(fields: [emoteId], references: [id])
+}
+
+// Biểu tượng của tài khoản
+model AccountIcon {
+  id        Int         @id @default(autoincrement())
+  accountId Int
+  iconId    Int
+  account   GameAccount @relation(fields: [accountId], references: [id])
+  icon      Icon        @relation(fields: [iconId], references: [id])
+}
+
+// Model cho tài khoản OAuth (Google, Facebook, ...)
+model OAuthAccount {
+  id                String  @id @default(cuid())
+  userId            Int
+  type              String // oauth, email, credentials
+  provider          String // google, facebook, github, ...
+  providerAccountId String // ID từ nhà cung cấp
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation("UserOAuthAccounts", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("oauth_accounts")
+}
+
+// Phiên đăng nhập cho NextAuth
+model Session {
+  id           String   @id @default(cuid())
+  userId       Int
+  expires      DateTime
+  sessionToken String   @unique
+  accessToken  String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_sessions")
+}
+
+// Danh sách tài khoản game
+model Listing {
+  id        Int           @id @default(autoincrement())
+  title     String
+  accountId Int           @unique
+  sellerId  Int
+  price     Decimal       @db.Decimal(10, 2)
+  status    ListingStatus @default(ACTIVE)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relationships
+  account GameAccount @relation(fields: [accountId], references: [id])
+  seller  User        @relation("UserListings", fields: [sellerId], references: [id])
+}
+
+// Phương thức thanh toán
+enum PaymentMethodType {
+  MOMO
+  ZALOPAY
+  VNPAY
+  BANK_TRANSFER
+  E_WALLET
+  BALANCE
+}
+
+// Thêm thiếu các model NextAuth
+model Account {
+  id                String  @id @default(cuid())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation("UserAccounts", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("auth_accounts")
+}
+
+// Trạng thái danh sách tài khoản
+enum ListingStatus {
+  ACTIVE // Đang hoạt động
+  SOLD // Đã bán
+  PENDING // Đang chờ duyệt
+  REJECTED // Bị từ chối
+  PAUSED // Tạm dừng
+}

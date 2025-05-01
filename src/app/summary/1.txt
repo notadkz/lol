@@ -1,0 +1,87 @@
+# Tổng kết thay đổi
+
+## Vấn đề
+- Khi thêm thủ công URL ảnh vào database, ảnh hiển thị bình thường
+- Khi thêm thông qua trang web, database không nhận dữ liệu images
+
+## Nguyên nhân
+- `images` được định nghĩa là một mảng (`string[]`) trong interface GameAccount
+- Database đang mong đợi `imageUrls` (không phải `images`) là một chuỗi JSON
+- Không có bước chuyển đổi mảng thành chuỗi JSON trước khi gửi dữ liệu đến server
+- Backend đang tìm kiếm trường `images` là mảng JavaScript và `imageUrls` là chuỗi JSON
+
+## Thay đổi đã thực hiện
+1. Thay đổi kiểu dữ liệu của `images` trong interface GameAccount:
+   - Từ: `images?: string[]`
+   - Thành: `images?: string`
+
+2. Khởi tạo `images` là chuỗi JSON mảng rỗng:
+   - Từ: `images: []`
+   - Thành: `images: "[]"`
+
+3. Sửa hàm `handleAddImageUrl` để chuyển đổi mảng thành chuỗi JSON:
+   - Lưu giữ mảng `imageUrls` cho việc hiển thị UI
+   - Chuyển đổi mảng thành chuỗi JSON và lưu vào `formData.images`
+
+4. Sửa hàm `handleRemoveImageUrl` tương tự như trên
+
+5. Sửa hàm `handleSubmit` để đảm bảo dữ liệu images được gửi đi đúng cách:
+   - Thêm kiểm tra và hiển thị log để debug
+   - Đảm bảo chuỗi JSON hợp lệ được gửi đi
+   - **Mới**: Thêm cả trường `images` (mảng JavaScript) và `imageUrls` (chuỗi JSON) vào dữ liệu gửi đi
+
+## Phát hiện mới
+Sau khi phân tích mã nguồn backend, tôi phát hiện:
+
+1. Backend mong đợi một trong hai dạng dữ liệu:
+   - `images` là một mảng JavaScript (được chuyển đổi thành chuỗi JSON)
+   - `imageUrls` là chuỗi JSON (được lưu trực tiếp vào DB)
+
+2. Trong Prisma schema, trường lưu trữ hình ảnh là `imageUrls`, không phải `images`:
+   ```prisma
+   model GameAccount {
+     // ...
+     imageUrls     String?   @db.Text // Lưu dạng JSON string
+     // ...
+   }
+   ```
+
+3. Xử lý trong API route (POST /api/admin/game-accounts):
+   ```javascript
+   // Xử lý hình ảnh
+   const imageUrls =
+     data.images && Array.isArray(data.images)
+       ? JSON.stringify(data.images)
+       : null;
+   
+   // Tạo tài khoản game mới
+   const newGameAccount = await prisma.gameAccount.create({
+     data: {
+       // ...
+       imageUrls,
+       // ...
+     },
+     // ...
+   });
+   ```
+
+## Giải pháp cuối cùng
+Gửi cả hai trường để đảm bảo backend xử lý đúng:
+```javascript
+submitData = {
+  ...restFormData,
+  images: imagesArray,     // Mảng JavaScript
+  imageUrls: imagesJSON,   // Chuỗi JSON
+  // ...
+}
+```
+
+## Kết quả mong đợi
+- Database có thể nhận và lưu trữ thông tin images dưới dạng chuỗi JSON
+- Hình ảnh sẽ hiển thị bình thường khi thêm tài khoản game qua trang web
+
+## Hướng dẫn test
+1. Thêm URL hình ảnh qua form
+2. Kiểm tra Console để xem dữ liệu images trước khi gửi
+3. Kiểm tra database sau khi lưu để đảm bảo images được lưu đúng định dạng
+4. Kiểm tra hiển thị hình ảnh trong trang chi tiết sản phẩm 
