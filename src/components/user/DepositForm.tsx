@@ -45,13 +45,15 @@ export default function DepositForm() {
 
   // PayOS config
   const payOSConfig: PayOSConfig = {
-    RETURN_URL: `${window.location.origin}/payment/success`,
+    RETURN_URL: `${window.location.origin}/payment/success?reference=${
+      paymentData?.reference || ""
+    }`,
     ELEMENT_ID: "payment-container",
     CHECKOUT_URL: paymentData?.paymentUrl || "",
     embedded: true,
     onSuccess: () => {
       console.log("Thanh toán thành công qua iframe");
-      router.push("/payment/success");
+      router.push(`/payment/success?reference=${paymentData?.reference || ""}`);
     },
     onCancel: () => {
       console.log("Hủy thanh toán");
@@ -75,7 +77,7 @@ export default function DepositForm() {
 
         if (result.success && result.status === "SUCCESS") {
           clearInterval(pollingRef.current!);
-          router.push("/payment/success");
+          router.push(`/payment/success?reference=${paymentData.reference}`);
         }
       } catch (err) {
         console.error("Lỗi kiểm tra trạng thái giao dịch:", err);

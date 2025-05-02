@@ -47,17 +47,8 @@ export async function POST(req: NextRequest) {
 
     console.log("Nhận webhook PayOS:", JSON.stringify(data));
 
-    // Kiểm tra chữ ký webhook nếu có
-    if (signature && !verifyWebhookSignature(data, signature)) {
-      console.error("Chữ ký webhook không hợp lệ");
-      return NextResponse.json(
-        { error: "Chữ ký webhook không hợp lệ" },
-        { status: 401 }
-      );
-    }
-
-    // Kiểm tra dữ liệu webhook
-    if (!data || !data.orderCode || !data.status) {
+    // Kiểm tra cấu trúc dữ liệu webhook của PayOS
+    if (!data || typeof data !== "object") {
       console.error("Dữ liệu webhook không hợp lệ:", data);
       return NextResponse.json(
         { error: "Dữ liệu webhook không hợp lệ" },
@@ -65,53 +56,96 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Xử lý dữ liệu webhook theo định dạng mới
+    // Nếu có trường data thì là định dạng mới
+    let paymentData = data;
+    let orderCode = null;
+    let status = null;
+
+    if (data.data && typeof data.data === "object") {
+      paymentData = data.data;
+      // Tìm orderCode
+      orderCode = paymentData.orderCode;
+      // Xác định trạng thái
+      status =
+        data.code === "00" && data.success
+          ? PayOSStatus.PAID
+          : PayOSStatus.ERROR;
+    } else {
+      // Định dạng cũ
+      orderCode = data.orderCode;
+      status = data.status;
+    }
+
+    // Kiểm tra dữ liệu
+    if (!orderCode) {
+      console.error("Thiếu mã giao dịch trong webhook:", data);
+      return NextResponse.json(
+        { error: "Thiếu mã giao dịch" },
+        { status: 400 }
+      );
+    }
+
     // Tìm giao dịch theo mã tham chiếu
-    const topUpTransaction = await prisma.topUpTransaction.findFirst({
+    let transactionData = await prisma.topUpTransaction.findFirst({
       where: {
-        transactionCode: data.orderCode.toString(), // so sánh đúng với orderCode đã truyền
+        transactionCode: orderCode.toString(), // so sánh đúng với orderCode đã truyền
       },
       include: {
         user: true,
       },
     });
 
-    if (!topUpTransaction) {
-      console.error("Không tìm thấy giao dịch:", data.orderCode);
-      return NextResponse.json(
-        { error: "Không tìm thấy giao dịch" },
-        { status: 404 }
-      );
+    if (!transactionData) {
+      // Kiểm tra xem có thể tìm bằng reference từ webhook không
+      const reference = paymentData.reference || data.reference;
+
+      if (reference) {
+        transactionData = await prisma.topUpTransaction.findFirst({
+          where: { reference: reference.toString() },
+          include: { user: true },
+        });
+      }
+
+      if (!transactionData) {
+        console.error("Không tìm thấy giao dịch:", orderCode);
+        return NextResponse.json(
+          { error: "Không tìm thấy giao dịch" },
+          { status: 404 }
+        );
+      }
     }
 
     // Kiểm tra nếu giao dịch đã được xử lý trước đó
-    if (topUpTransaction.status === "SUCCESS") {
-      console.log("Giao dịch đã được xử lý trước đó:", data.orderCode);
+    if (transactionData.status === "SUCCESS") {
+      console.log("Giao dịch đã được xử lý trước đó:", orderCode);
       return NextResponse.json({ message: "Giao dịch đã được xử lý" });
     }
 
     // Xử lý theo trạng thái thanh toán
-    if (data.status === PayOSStatus.PAID) {
-      console.log("Xử lý giao dịch thành công:", data.orderCode);
+    if (status === PayOSStatus.PAID) {
+      console.log("Xử lý giao dịch thành công:", orderCode);
 
       // Cập nhật trạng thái giao dịch
       await prisma.topUpTransaction.update({
         where: {
-          id: topUpTransaction.id,
+          id: transactionData.id,
         },
         data: {
           status: "SUCCESS",
           transferTime: new Date(),
           apiResponse: JSON.stringify(data),
-          bankReference: data.transactionId || null,
+          bankReference:
+            data.transactionId || paymentData.transactionId || null,
         },
       });
 
       // Lấy thông tin user
-      const user = topUpTransaction.user;
+      const user = transactionData.user;
       if (!user) {
         console.error(
           "Không tìm thấy thông tin người dùng:",
-          topUpTransaction.userId
+          transactionData.userId
         );
         return NextResponse.json(
           { error: "Không tìm thấy thông tin người dùng" },
@@ -126,7 +160,7 @@ export async function POST(req: NextRequest) {
         },
         data: {
           balance: {
-            increment: Number(topUpTransaction.amount),
+            increment: Number(transactionData.amount),
           },
         },
       });
@@ -135,14 +169,14 @@ export async function POST(req: NextRequest) {
       await prisma.transactionHistory.create({
         data: {
           userId: user.id,
-          amount: Number(topUpTransaction.amount),
+          amount: Number(transactionData.amount),
           balanceBefore: Number(user.balance),
           balanceAfter: Number(updatedUser.balance),
           type: "TOPUP",
-          description: `Nạp tiền qua PayOS - ${topUpTransaction.reference}`,
-          reference: topUpTransaction.reference,
+          description: `Nạp tiền qua PayOS - ${transactionData.reference}`,
+          reference: transactionData.reference,
           status: "SUCCESS",
-          topUpTransactionId: topUpTransaction.id,
+          topUpTransactionId: transactionData.id,
           metadata: JSON.stringify({
             paymentId: data.transactionId || null,
             paymentMethod: "PayOS",
@@ -157,7 +191,7 @@ export async function POST(req: NextRequest) {
           userId: user.id,
           title: "Nạp tiền thành công",
           content: `Bạn đã nạp thành công ${Number(
-            topUpTransaction.amount
+            transactionData.amount
           ).toLocaleString("vi-VN")} VNĐ vào tài khoản.`,
           type: "PAYMENT",
         },
@@ -168,14 +202,14 @@ export async function POST(req: NextRequest) {
         message: "Giao dịch đã được xử lý thành công",
       });
     } else if (
-      data.status === PayOSStatus.CANCELLED ||
-      data.status === PayOSStatus.ERROR ||
-      data.status === PayOSStatus.EXPIRED
+      status === PayOSStatus.CANCELLED ||
+      status === PayOSStatus.ERROR ||
+      status === PayOSStatus.EXPIRED
     ) {
       // Cập nhật trạng thái giao dịch thất bại
       await prisma.topUpTransaction.update({
         where: {
-          id: topUpTransaction.id,
+          id: transactionData.id,
         },
         data: {
           status: "FAILED",
@@ -189,7 +223,7 @@ export async function POST(req: NextRequest) {
       });
     } else {
       // Trường hợp còn đang xử lý
-      console.log("Giao dịch đang xử lý:", data.orderCode);
+      console.log("Giao dịch đang xử lý:", orderCode);
       return NextResponse.json({
         success: true,
         message: "Giao dịch đang được xử lý",

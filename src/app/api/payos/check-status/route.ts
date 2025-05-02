@@ -5,7 +5,10 @@ export async function GET(req: NextRequest) {
   const reference = req.nextUrl.searchParams.get("reference");
 
   if (!reference) {
-    return NextResponse.json({ error: "Thiếu mã tham chiếu" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Thiếu mã tham chiếu", success: false },
+      { status: 400 }
+    );
   }
 
   const transaction = await prisma.topUpTransaction.findFirst({
@@ -14,10 +17,10 @@ export async function GET(req: NextRequest) {
 
   if (!transaction) {
     return NextResponse.json(
-      { error: "Không tìm thấy giao dịch" },
+      { error: "Không tìm thấy giao dịch", success: false },
       { status: 404 }
     );
   }
 
-  return NextResponse.json({ status: transaction.status });
+  return NextResponse.json({ status: transaction.status, success: true });
 }

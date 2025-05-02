@@ -5,20 +5,10 @@ import prisma from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   try {
-    // Lấy phiên đăng nhập từ NextAuth
-    const session = await getServerSession(authOptions);
-
-    // Kiểm tra đăng nhập
-    if (!session?.user) {
-      return NextResponse.json(
-        { error: "Bạn cần đăng nhập để thực hiện chức năng này" },
-        { status: 401 }
-      );
-    }
-
     // Lấy tham số reference từ URL
     const { searchParams } = new URL(req.url);
     const reference = searchParams.get("reference");
+    const fromSuccess = searchParams.get("from_success") === "true";
 
     if (!reference) {
       return NextResponse.json(
@@ -27,12 +17,22 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Lấy phiên đăng nhập từ NextAuth
+    const session = await getServerSession(authOptions);
+
+    // Xác định điều kiện tìm kiếm
+    const searchCondition: any = {
+      reference: reference,
+    };
+
+    // Nếu đăng nhập và không phải từ trang success, thêm điều kiện userId
+    if (session?.user && !fromSuccess) {
+      searchCondition.userId = Number(session.user.id);
+    }
+
     // Tìm giao dịch theo mã tham chiếu
     const transaction = await prisma.topUpTransaction.findFirst({
-      where: {
-        reference: reference,
-        userId: Number(session.user.id),
-      },
+      where: searchCondition,
     });
 
     if (!transaction) {
@@ -46,13 +46,18 @@ export async function GET(req: NextRequest) {
     // Thực tế, bạn có thể gọi API PayOS để kiểm tra trạng thái hiện tại
     // Code bổ sung ở đây...
 
-    // Trả về thông tin giao dịch
+    // Trả về thông tin giao dịch đầy đủ
     return NextResponse.json({
       success: true,
       transaction: {
         id: transaction.id,
         reference: transaction.reference,
         amount: transaction.amount,
+        description:
+          transaction.transferContent || transaction.processingNote || "",
+        transactionCode: transaction.transactionCode || "",
+        bankReference: transaction.bankReference || "",
+        transferTime: transaction.transferTime || null,
         status: transaction.status,
         createdAt: transaction.createdAt,
         updatedAt: transaction.updatedAt,
