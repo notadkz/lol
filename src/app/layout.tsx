@@ -3,11 +3,11 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Providers } from "@/components/providers";
-import Header from "@/components/layout/header";
-import Footer from "@/components/layout/footer";
+
 import { LenisProvider } from "@/components/lenis-provider";
 import ModeToggle from "@/components/mode-toggle";
 import ClientLayout from "@/components/client-layout";
+import SmoothWrapper from "@/components/SmootherWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -27,9 +27,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="h-full" suppressHydrationWarning>
       <body
-        className={`${inter.className} min-h-screen flex flex-col scrollbar-none`}
+        className={`${inter.className}  min-h-screen h-full flex flex-col scrollbar-none`}
         suppressHydrationWarning
       >
         <ThemeProvider
@@ -39,9 +39,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            <LenisProvider>
+            <SmoothWrapper>
               <ClientLayout>{children}</ClientLayout>
-            </LenisProvider>
+            </SmoothWrapper>
           </Providers>
         </ThemeProvider>
       </body>

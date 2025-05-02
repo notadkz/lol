@@ -3,20 +3,25 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { generateUniqueReference } from "@/lib/utils";
-import { generateSignature } from "@/lib/payos"; // 👈 đã tạo ở lib/payos.ts
+import { generateSignature } from "@/lib/payos";
 import axios from "axios";
 
-// Lấy thông tin môi trường PayOS
 const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID;
 const PAYOS_API_KEY = process.env.PAYOS_API_KEY;
 const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY;
 const PAYOS_API_URL =
   process.env.PAYOS_API_URL || "https://api-merchant.payos.vn";
 
-// Endpoint tạo thanh toán
+interface SignPayload {
+  orderCode: number;
+  amount: number;
+  description: string;
+  cancelUrl: string;
+  returnUrl: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    // Kiểm tra config
     if (!PAYOS_CLIENT_ID || !PAYOS_API_KEY || !PAYOS_CHECKSUM_KEY) {
       return NextResponse.json(
         { error: "Thiếu cấu hình PayOS" },
@@ -25,13 +30,12 @@ export async function POST(req: NextRequest) {
     }
 
     const session = await getServerSession(authOptions);
-    if (!session?.user || !session.user.email) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Bạn cần đăng nhập" }, { status: 401 });
     }
 
     const userEmail = session.user.email;
     const user = await prisma.user.findUnique({ where: { email: userEmail } });
-
     if (!user) {
       return NextResponse.json(
         { error: "Không tìm thấy người dùng" },
@@ -40,43 +44,40 @@ export async function POST(req: NextRequest) {
     }
 
     const dbUserId = user.id;
-    const reqData = await req.json();
-    const { amount, description = "" } = reqData;
+    const { amount, description = "" } = await req.json();
 
-    if (!amount || amount < 50000) {
+    if (!amount || amount < 5000) {
       return NextResponse.json(
-        { error: "Số tiền nạp tối thiểu là 50,000 VNĐ" },
+        { error: "Số tiền nạp tối thiểu là 5,000 VNĐ" },
         { status: 400 }
       );
     }
 
-    const reference = await generateUniqueReference("NAP", dbUserId);
+    const orderCode = Number(`${dbUserId}${Date.now() % 1000000}`);
+    const reference = `NAP_${orderCode}`; // <- vẫn giữ reference là string
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
-    // ✅ orderPayload: dữ liệu dùng để ký và gửi
-    const orderPayload: any = {
-      orderCode: reference,
+    const signPayload: SignPayload = {
+      orderCode,
       amount: Number(amount),
       description: description || `Nap tien - ${userEmail}`,
       cancelUrl: `${appUrl}/user/deposit?status=cancel`,
       returnUrl: `${appUrl}/payment/success?reference=${reference}`,
+    };
+
+    const signature = generateSignature(signPayload, PAYOS_CHECKSUM_KEY);
+
+    const finalPayload: any = {
+      ...signPayload,
+      signature,
       buyerName: user.name || userEmail.split("@")[0],
       buyerEmail: userEmail,
     };
 
-    // ✅ chỉ thêm buyerPhone nếu hợp lệ
     if (user.phone && /^0\d{9}$/.test(user.phone)) {
-      orderPayload.buyerPhone = user.phone;
+      finalPayload.buyerPhone = user.phone;
     }
-
-    // ✅ Tạo signature
-    const signature = generateSignature(orderPayload, PAYOS_CHECKSUM_KEY);
-
-    // ✅ Payload cuối cùng gửi PayOS
-    const finalPayload = {
-      ...orderPayload,
-      signature,
-    };
 
     const headers = {
       "x-client-id": PAYOS_CLIENT_ID,
@@ -84,16 +85,13 @@ export async function POST(req: NextRequest) {
       "Content-Type": "application/json",
     };
 
-    // Gọi PayOS
     const payosResponse = await axios.post(
       `${PAYOS_API_URL}/v2/payment-requests`,
       finalPayload,
-      {
-        headers,
-      }
+      { headers }
     );
-
     const payosData = payosResponse.data;
+
     if (!payosData || payosData.code !== "00" || !payosData.data) {
       return NextResponse.json(
         {
@@ -112,7 +110,6 @@ export async function POST(req: NextRequest) {
     let bankAccount = await prisma.bankAccount.findFirst({
       where: { isActive: true },
     });
-
     if (!bankAccount) {
       bankAccount = await prisma.bankAccount.create({
         data: {
@@ -130,8 +127,8 @@ export async function POST(req: NextRequest) {
         userId: dbUserId,
         amount: Number(amount),
         bankAccountId: bankAccount.id,
-        reference: reference,
-        transactionCode: paymentData.id || "",
+        reference,
+        transactionCode: orderCode.toString(),
         status: "PENDING",
         transferContent: description || `Nạp tiền - ${userEmail}`,
       },
@@ -143,10 +140,10 @@ export async function POST(req: NextRequest) {
       qrCode: paymentData.qrCode,
       paymentInfo: {
         bankName: "VietQR",
-        amount: amount,
+        amount,
         description: description || `Nạp tiền - ${userEmail}`,
       },
-      reference: reference,
+      reference,
     });
   } catch (error: any) {
     console.error("Lỗi tạo thanh toán:", error);

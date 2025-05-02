@@ -11,6 +11,7 @@ import { gsap } from "gsap";
 import { useAuth } from "@/hooks/useAuth";
 import { signOut } from "next-auth/react";
 import AvatarDropdown from "./avatar-dropdown";
+import ModeToggle from "../mode-toggle";
 
 const navItems = [
   { name: "Trang chủ", href: "/" },
@@ -330,6 +331,8 @@ export default function Header() {
           >
             <Menu className="h-5 w-5" />
           </Button>
+
+          <ModeToggle />
         </div>
       </div>
 

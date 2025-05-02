@@ -1,12 +1,28 @@
 import crypto from "crypto";
 
-/**
- * Tạo chữ ký (signature) để xác thực dữ liệu gửi lên PayOS
- * @param payload - Dữ liệu gửi lên API
- * @param checksumKey - Khóa bí mật do PayOS cung cấp
- * @returns Chuỗi chữ ký HMAC-SHA256
- */
-export function generateSignature(payload: any, checksumKey: string): string {
-  const rawData = JSON.stringify(payload);
-  return crypto.createHmac("sha256", checksumKey).update(rawData).digest("hex");
+export function generateSignature(
+  payload: {
+    orderCode: number; // ✅ đổi từ string → number
+    amount: number;
+    description: string;
+    cancelUrl: string;
+    returnUrl: string;
+  },
+  checksumKey: string
+): string {
+  const sortedKeys = [
+    "amount",
+    "cancelUrl",
+    "description",
+    "orderCode",
+    "returnUrl",
+  ];
+  const dataString = sortedKeys
+    .map((key) => `${key}=${payload[key as keyof typeof payload]}`)
+    .join("&");
+
+  return crypto
+    .createHmac("sha256", checksumKey)
+    .update(dataString)
+    .digest("hex");
 }

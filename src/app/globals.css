@@ -110,3 +110,7 @@
 .buy-button:hover::after {
   transform: translateX(0);
 }
+.content {
+  will-change: transform;
+  backface-visibility: hidden;
+}

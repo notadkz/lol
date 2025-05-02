@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
     // Tìm giao dịch theo mã tham chiếu
     const topUpTransaction = await prisma.topUpTransaction.findFirst({
       where: {
-        reference: data.orderCode,
+        transactionCode: data.orderCode.toString(), // so sánh đúng với orderCode đã truyền
       },
       include: {
         user: true,

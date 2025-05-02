@@ -5,7 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 interface Params {
   params: {
-    id: string;
+    id: number;
   };
 }
 
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: Params) {
         image: true,
         accountType: true,
         createdAt: true,
-        isVerified: true,
+        // isVerified: true,
       },
     });
 

@@ -17,12 +17,8 @@ export default function ClientLayout({
 
   return (
     <>
-      {!isAdminPage && <Header />}
       <main className="flex-grow">{children}</main>
       {!isAdminPage && <Footer />}
-      <div className="fixed bottom-4 right-4">
-        <ModeToggle />
-      </div>
     </>
   );
 }

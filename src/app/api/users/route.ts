@@ -25,8 +25,8 @@ export async function GET(req: NextRequest) {
         image: true,
         accountType: true,
         createdAt: true,
-        isVerified: true,
-        isActive: true,
+        // isVerified: true,
+        // isActive: true,
         balance: true,
       },
     });
@@ -95,8 +95,8 @@ export async function PATCH(req: NextRequest) {
         image: true,
         accountType: true,
         createdAt: true,
-        isVerified: true,
-        isActive: true,
+        // isVerified: true,
+        // isActive: true,
         balance: true,
       },
     });
