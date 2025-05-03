@@ -44,7 +44,7 @@ export default function AvatarDropdown() {
       <Button
         variant="ghost"
         size="icon"
-        className="nav-item p-0"
+        className="nav-item p-0 hover:bg-none"
         id="avatar-btn"
         onClick={() => {
           console.log("AvatarDropdown: toggle dropdown");

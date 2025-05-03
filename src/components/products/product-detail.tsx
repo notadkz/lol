@@ -9,6 +9,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { Product } from "@/lib/types/product";
 import { gsap } from "gsap";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface ProductDetailProps {
   product: Product;
@@ -18,6 +20,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
   const imageRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const router = useRouter();
 
   // Format price to VND
   const formatPrice = (price: number) => {
@@ -70,6 +73,32 @@ export default function ProductDetail({ product }: ProductDetailProps) {
       });
     }
   }, []);
+
+  const handleBuyNow = async () => {
+    try {
+      const res = await fetch("/api/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountId: product.id }),
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Mua hàng thất bại");
+        return;
+      }
+
+      toast.success("Mua hàng thành công!");
+
+      // Redirect đến trang đơn hàng, tài khoản đã mua, hoặc profile
+      router.push("/account/purchased"); // hoặc /orders hoặc /profile
+    } catch (err) {
+      console.error("Lỗi mua hàng:", err);
+      toast.error("Đã xảy ra lỗi khi xử lý đơn hàng");
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -197,6 +226,7 @@ export default function ProductDetail({ product }: ProductDetailProps) {
             size="lg"
             className="w-full text-lg py-6 buy-button"
             disabled={product.status !== "available"}
+            onClick={handleBuyNow}
           >
             <ShoppingCart className="mr-2 h-5 w-5" />
             Mua ngay

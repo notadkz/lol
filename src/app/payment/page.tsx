@@ -19,12 +19,24 @@ export default function PaymentPage() {
       return;
     }
 
-    // Giả lập việc lấy số dư từ API (trong thực tế sẽ gọi API)
-    if (status === "authenticated" && session?.user) {
-      // Tạm thời giả lập việc lấy balance
-      // Trong thực tế sẽ gọi API endpoint để lấy thông tin người dùng
-      setBalance(250000); // Giả sử số dư = 250,000 VND
-      setLoading(false);
+    const fetchBalance = async () => {
+      try {
+        const res = await fetch("/api/users"); // endpoint trả về balance
+        const data = await res.json();
+        if (res.ok && data?.balance !== undefined) {
+          setBalance(Number(data.balance));
+        } else {
+          console.error("Lỗi lấy số dư:", data);
+        }
+      } catch (err) {
+        console.error("Lỗi gọi API:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (status === "authenticated") {
+      fetchBalance();
     }
   }, [status, session, router]);
 

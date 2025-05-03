@@ -67,7 +67,10 @@ export default function Header() {
     <header className="fixed top-0 w-full z-50 h-[8vh] bg-background/95 backdrop-blur-md border-b flex items-center">
       <div className="container mx-auto flex items-center justify-between">
         {/* Logo LOL */}
-        <Link href="/" className="flex items-center space-x-2">
+        <div
+          onClick={() => router.push("/")}
+          className="flex items-center space-x-2"
+        >
           <svg
             version="1.0"
             id="katman_1"
@@ -284,7 +287,7 @@ export default function Header() {
 	C632.6,217.8,634.5,220.1,634.5,223.2z"
             />
           </svg>
-        </Link>
+        </div>
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">
@@ -305,16 +308,13 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" className="nav-item">
-            <ShoppingCart className="h-5 w-5" />
-          </Button>
           {/* Login/Avatar Dropdown */}
           {!isAuthenticated ? (
             <Link href="/auth/login">
               <Button
                 variant="purple"
                 size="icon"
-                className="nav-item bg-purple-600 hover:bg-purple-700"
+                className="nav-item bg-purple-600"
                 id="user-login-button"
               >
                 <User className="h-5 w-5 text-white" />
@@ -331,7 +331,6 @@ export default function Header() {
           >
             <Menu className="h-5 w-5" />
           </Button>
-
           <ModeToggle />
         </div>
       </div>

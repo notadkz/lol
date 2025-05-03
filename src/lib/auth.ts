@@ -62,18 +62,28 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.userId = user.id?.toString(); // 👈 THÊM dòng này
-        token.email = user.email ?? undefined;
-        token.name = user.name;
-        token.isAdmin = user.isAdmin;
+        // token.userId = user.id?.toString(); // 👈 THÊM dòng này
+        // token.email = user.email ?? undefined;
+        // token.name = user.name;
+        // token.isAdmin = user.isAdmin;
+        token.user = {
+          id: user.id?.toString(),
+          email: user.email,
+          name: user.name,
+          isAdmin: user.isAdmin,
+        };
       }
       return token;
     },
     async session({ session, token }) {
-      session.user.id = token.userId as string; // 👈 Đúng field rồi
-      session.user.email = token.email as string;
-      session.user.name = token.name as string;
-      session.user.isAdmin = token.isAdmin as boolean;
+      // session.user.id = token.userId as string; // 👈 Đúng field rồi
+      // session.user.email = token.email as string;
+      // session.user.name = token.name as string;
+      // session.user.isAdmin = token.isAdmin as boolean;
+      // return session;
+      if (token.user) {
+        session.user = token.user as any;
+      }
       return session;
     },
   },

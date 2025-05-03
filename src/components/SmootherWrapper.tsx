@@ -23,7 +23,7 @@ export default function SmoothWrapper({
     const smoother = ScrollSmoother.create({
       wrapper: ".wrapper",
       content: ".content",
-      smooth: 2,
+      smooth: 1.5,
     });
   }, []);
 

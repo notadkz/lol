@@ -31,15 +31,22 @@ export default function LoginPage() {
   // Kiểm tra xem có lỗi từ callback hay không
   useEffect(() => {
     const error = searchParams?.get("error");
-    const callbackUrl = searchParams?.get("callbackUrl");
+    const rawCallbackUrl = searchParams?.get("callbackUrl");
+
+    // Kiểm tra callbackUrl có hợp lệ không
+    const isValidCallbackUrl =
+      rawCallbackUrl !== null &&
+      typeof rawCallbackUrl === "string" &&
+      rawCallbackUrl.startsWith("/");
+
+    const callbackUrl: string = isValidCallbackUrl ? rawCallbackUrl : "/";
 
     if (error) {
       toast.error("Đăng nhập không thành công: " + error);
     }
 
-    // Nếu đã xác thực, chuyển hướng đến trang chủ hoặc callbackUrl
     if (isAuthenticated) {
-      router.push(callbackUrl || "/");
+      router.push(callbackUrl);
     }
   }, [searchParams, isAuthenticated, router]);
 

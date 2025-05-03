@@ -45,7 +45,12 @@ export async function POST(req: NextRequest) {
     const data = await req.json();
     const signature = req.headers.get("X-Signature") || "";
 
-    console.log("Nhận webhook PayOS:", JSON.stringify(data));
+    /* Dùng để config webhook PayOS */
+    // if (!data.orderCode && !data.transactionId && !signature) {
+    //   console.log("🔧 Ping kiểm tra webhook từ PayOS → Trả về 200 OK");
+    //   return NextResponse.json({ message: "Webhook OK" }, { status: 200 });
+    // }
+    // console.log("Nhận webhook PayOS:", JSON.stringify(data));
 
     // Kiểm tra cấu trúc dữ liệu webhook của PayOS
     if (!data || typeof data !== "object") {

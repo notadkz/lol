@@ -240,10 +240,24 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Đảm bảo redirect về đúng trang sau khi đăng nhập thành công
-      if (url.startsWith(baseUrl)) return url;
-      // Nếu đã đăng nhập thành công, chuyển về trang chủ
-      return "/";
+      try {
+        // Kiểm tra nếu là đường dẫn nội bộ thì nối với baseUrl
+        if (url.startsWith("/")) {
+          return `${baseUrl}${url}`;
+        }
+
+        // Nếu đã là URL đầy đủ và hợp lệ cùng domain, cho phép
+        const parsedUrl = new URL(url);
+        if (parsedUrl.origin === baseUrl) {
+          return parsedUrl.href;
+        }
+
+        // Nếu không hợp lệ → fallback về baseUrl
+        return baseUrl;
+      } catch (err) {
+        console.warn("⚠️ redirect callback lỗi URL:", url);
+        return baseUrl;
+      }
     },
   },
   pages: {

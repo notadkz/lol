@@ -1,6 +1,16 @@
-import { Shield, CheckCircle, AlertCircle } from "lucide-react"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Shield, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 export default function WarrantyPage() {
   return (
@@ -8,7 +18,8 @@ export default function WarrantyPage() {
       <div className="text-center mb-16">
         <h1 className="text-4xl font-bold mb-4">Chính sách bảo hành</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Chúng tôi cam kết bảo vệ quyền lợi của khách hàng với chính sách bảo hành rõ ràng và minh bạch.
+          Chúng tôi cam kết bảo vệ quyền lợi của khách hàng với chính sách bảo
+          hành rõ ràng và minh bạch.
         </p>
       </div>
 
@@ -17,7 +28,9 @@ export default function WarrantyPage() {
           <CardHeader className="flex flex-col items-center text-center">
             <Shield className="h-12 w-12 text-primary mb-4" />
             <CardTitle>Bảo hành 30 ngày</CardTitle>
-            <CardDescription>Tất cả tài khoản đều được bảo hành trong 30 ngày kể từ ngày mua.</CardDescription>
+            <CardDescription>
+              Tất cả tài khoản đều được bảo hành trong 30 ngày kể từ ngày mua.
+            </CardDescription>
           </CardHeader>
         </Card>
 
@@ -25,7 +38,9 @@ export default function WarrantyPage() {
           <CardHeader className="flex flex-col items-center text-center">
             <CheckCircle className="h-12 w-12 text-primary mb-4" />
             <CardTitle>Cam kết chất lượng</CardTitle>
-            <CardDescription>Tài khoản đúng như mô tả, hoàn tiền 100% nếu không đúng.</CardDescription>
+            <CardDescription>
+              Tài khoản đúng như mô tả, hoàn tiền 100% nếu không đúng.
+            </CardDescription>
           </CardHeader>
         </Card>
 
@@ -33,7 +48,9 @@ export default function WarrantyPage() {
           <CardHeader className="flex flex-col items-center text-center">
             <AlertCircle className="h-12 w-12 text-primary mb-4" />
             <CardTitle>Hỗ trợ 24/7</CardTitle>
-            <CardDescription>Đội ngũ hỗ trợ luôn sẵn sàng giúp đỡ bạn mọi lúc mọi nơi.</CardDescription>
+            <CardDescription>
+              Đội ngũ hỗ trợ luôn sẵn sàng giúp đỡ bạn mọi lúc mọi nơi.
+            </CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -43,44 +60,59 @@ export default function WarrantyPage() {
 
         <Accordion type="single" collapsible className="mb-8">
           <AccordionItem value="item-1">
-            <AccordionTrigger>Làm thế nào để kích hoạt bảo hành?</AccordionTrigger>
+            <AccordionTrigger>
+              Làm thế nào để kích hoạt bảo hành?
+            </AccordionTrigger>
             <AccordionContent>
-              Để kích hoạt bảo hành, bạn chỉ cần liên hệ với chúng tôi qua hotline hoặc email với mã đơn hàng. Chúng tôi
-              sẽ xử lý yêu cầu của bạn trong vòng 24 giờ.
+              Bảo hành sẽ được tính dựa trên thời gian mà bạn mua tài khoản.
+              Thời hạn bảo hành là 30 ngày với bất kì tài khoản nào.
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-2">
-            <AccordionTrigger>Những trường hợp nào được bảo hành?</AccordionTrigger>
+            <AccordionTrigger>
+              Những trường hợp nào được bảo hành?
+            </AccordionTrigger>
             <AccordionContent>
-              Chúng tôi bảo hành trong các trường hợp: tài khoản bị khóa, thông tin tài khoản không đúng như mô tả,
-              không thể đăng nhập, mất quyền truy cập, thiếu trang phục hoặc tướng so với mô tả.
+              Chúng tôi bảo hành trong các trường hợp: tài khoản bị khóa, thông
+              tin tài khoản không đúng như mô tả, không thể đăng nhập, mất quyền
+              truy cập, thiếu trang phục hoặc tướng so với mô tả.
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-3">
-            <AccordionTrigger>Những trường hợp nào không được bảo hành?</AccordionTrigger>
+            <AccordionTrigger>
+              Những trường hợp nào không được bảo hành?
+            </AccordionTrigger>
             <AccordionContent>
-              Chúng tôi không bảo hành trong các trường hợp: tài khoản bị khóa do vi phạm điều khoản của Riot Games,
-              thay đổi thông tin tài khoản mà không thông báo, chia sẻ tài khoản cho người khác sử dụng, hết thời hạn
-              bảo hành 30 ngày.
+              Chúng tôi không bảo hành trong các trường hợp: tài khoản bị khóa
+              do vi phạm điều khoản của Riot Games, thay đổi thông tin tài khoản
+              mà không thông báo, chia sẻ tài khoản cho người khác sử dụng, hết
+              thời hạn bảo hành 30 ngày.
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-4">
-            <AccordionTrigger>Quy trình bảo hành diễn ra như thế nào?</AccordionTrigger>
+            <AccordionTrigger>
+              Quy trình bảo hành diễn ra như thế nào?
+            </AccordionTrigger>
             <AccordionContent>
-              Quy trình bảo hành gồm 3 bước: (1) Tiếp nhận yêu cầu bảo hành, (2) Kiểm tra và xác minh thông tin, (3) Xử
-              lý bảo hành (cung cấp tài khoản mới hoặc hoàn tiền). Quy trình này thường mất 1-3 ngày làm việc.
+              Quy trình bảo hành gồm 3 bước: (1) Tiếp nhận yêu cầu bảo hành, (2)
+              Kiểm tra và xác minh thông tin, (3) Xử lý bảo hành (cung cấp tài
+              khoản mới hoặc hoàn tiền). Quy trình này thường mất 1-3 ngày làm
+              việc.
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-5">
-            <AccordionTrigger>Làm thế nào để bảo vệ tài khoản của tôi?</AccordionTrigger>
+            <AccordionTrigger>
+              Làm thế nào để bảo vệ tài khoản của tôi?
+            </AccordionTrigger>
             <AccordionContent>
-              Để bảo vệ tài khoản, bạn nên: thay đổi mật khẩu ngay sau khi nhận tài khoản, bật xác thực 2 lớp, không
-              chia sẻ thông tin đăng nhập với người khác, không sử dụng phần mềm bên thứ ba không đáng tin cậy, và
-              thường xuyên kiểm tra hoạt động đăng nhập.
+              Để bảo vệ tài khoản, bạn nên: thay đổi mật khẩu ngay sau khi nhận
+              tài khoản, bật xác thực 2 lớp, không chia sẻ thông tin đăng nhập
+              với người khác, không sử dụng phần mềm bên thứ ba không đáng tin
+              cậy, và thường xuyên kiểm tra hoạt động đăng nhập.
             </AccordionContent>
           </AccordionItem>
         </Accordion>
@@ -88,16 +120,17 @@ export default function WarrantyPage() {
         <div className="bg-muted/50 rounded-lg p-6">
           <h3 className="text-xl font-bold mb-4">Liên hệ bảo hành</h3>
           <p className="text-muted-foreground mb-4">
-            Nếu bạn cần hỗ trợ hoặc có thắc mắc về chính sách bảo hành, vui lòng liên hệ với chúng tôi qua:
+            Nếu bạn cần hỗ trợ hoặc có thắc mắc về chính sách bảo hành, vui lòng
+            liên hệ với chúng tôi qua:
           </p>
           <ul className="space-y-2">
             <li className="flex items-center">
               <span className="font-medium mr-2">Email:</span>
-              <span className="text-primary">support@lolaccounts.vn</span>
+              <span className="text-primary">phancongchau80fm@gmail.com</span>
             </li>
             <li className="flex items-center">
               <span className="font-medium mr-2">Hotline:</span>
-              <span className="text-primary">0123.456.789</span>
+              <span className="text-primary">0783.324.234</span>
             </li>
             <li className="flex items-center">
               <span className="font-medium mr-2">Giờ làm việc:</span>
@@ -107,5 +140,5 @@ export default function WarrantyPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

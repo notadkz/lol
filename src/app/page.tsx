@@ -12,6 +12,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Skeleton } from "@/components/ui/skeleton";
 import ApiDebugPanel from "@/components/debug/ApiDebugPanel";
+import FlairButton from "@/components/FlairButton";
 
 export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null);
@@ -145,15 +146,12 @@ export default function Home() {
             id="hero-buttons"
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Button size="lg" asChild>
-              <Link href="/products">
-                Xem tài khoản
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button size="lg" variant="outline">
-              <Link href="/contact">Liên hệ tư vấn</Link>
-            </Button>
+            <FlairButton
+              accentColor="#fff"
+              primaryColor="#000"
+              text="Xem tài khoản"
+              className="bg-black rounded-lg h-12 w-40"
+            />
           </div>
         </div>
       </section>
@@ -256,9 +254,12 @@ export default function Home() {
             Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn 24/7. Liên hệ
             ngay để được tư vấn chi tiết.
           </p>
-          <Button size="lg" asChild>
-            <Link href="/contact">Liên hệ ngay</Link>
-          </Button>
+
+          <FlairButton
+            accentColor="#000"
+            primaryColor="#fff"
+            text="LIÊN HỆ NGAY"
+          />
         </div>
       </section>
 
