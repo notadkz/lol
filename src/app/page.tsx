@@ -9,7 +9,9 @@ import ProductList from "@/components/products/product-list";
 import { useLatestAccounts } from "@/hooks/useLatestAccounts";
 import { useFeaturedAccounts } from "@/hooks/useFeaturedAccounts";
 import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { SplitText } from "gsap/SplitText";
 import { Skeleton } from "@/components/ui/skeleton";
 import ApiDebugPanel from "@/components/debug/ApiDebugPanel";
 import FlairButton from "@/components/FlairButton";
@@ -45,10 +47,10 @@ export default function Home() {
     };
   }, []);
 
-  useEffect(() => {
+  useGSAP(() => {
     // Đảm bảo ScrollTrigger được đăng ký
     if (typeof window !== "undefined") {
-      gsap.registerPlugin(ScrollTrigger);
+      gsap.registerPlugin(ScrollTrigger, SplitText);
     }
 
     // Cleanup function cho các GSAP animations
@@ -72,25 +74,40 @@ export default function Home() {
       // Hero animations
       const heroTimeline = gsap.timeline();
 
-      heroTimeline
-        .fromTo(
-          "#hero-title",
-          { y: 50, opacity: 0 },
-          { y: 0, opacity: 1, duration: 1, ease: "power3.out" }
-        )
-        .fromTo(
-          "#hero-description",
-          { y: 30, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
-          "-=0.7"
-        )
-        .fromTo(
-          "#hero-buttons",
-          { y: 20, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
-          "-=0.5"
-        );
+      // heroTimeline
+      //   .fromTo(
+      //     "#hero-title",
+      //     { y: 50, opacity: 0 },
+      //     { y: 0, opacity: 1, duration: 1, ease: "power3.out" }
+      //   )
+      //   .fromTo(
+      //     "#hero-description",
+      //     { y: 30, opacity: 0 },
+      //     { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" },
+      //     "-=0.7"
+      //   )
+      //   .fromTo(
+      //     "#hero-buttons",
+      //     { y: 20, opacity: 0 },
+      //     { y: 0, opacity: 1, duration: 0.6, ease: "power3.out" },
+      //     "-=0.5"
+      //   );
     }
+    let split = SplitText.create("#hero", {
+      type: "chars",
+      linesClass: "overflow-hidden",
+    });
+    gsap.from(split.chars, {
+      yPercent: "random([-100,100])",
+      rotation: "random([-30,30])",
+      duration: 1.5,
+      autoAlpha: 0,
+      ease: "power3.out",
+      stagger: {
+        amount: 0.1,
+        from: "random",
+      },
+    });
     // Cleanup khi component unmount
     return cleanup;
   }, []); // Chỉ chạy một lần khi component mount
@@ -130,16 +147,13 @@ export default function Home() {
         </div>
         <div className="container mx-auto px-4 text-center z-10">
           <h1
-            id="hero-title"
+            id="hero"
             className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-6 text-white"
           >
             Tài Khoản Liên Minh Huyền Thoại{" "}
             <span className="text-primary">Chất Lượng Cao</span>
           </h1>
-          <p
-            id="hero-description"
-            className="text-xl text-gray-200 mb-6 max-w-3xl mx-auto"
-          >
+          <p id="hero" className="text-xl text-gray-200 mb-6 max-w-3xl mx-auto">
             Mua bán tài khoản LOL uy tín, an toàn và giá tốt nhất thị trường
           </p>
           <div

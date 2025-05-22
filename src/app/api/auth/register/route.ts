@@ -1,9 +1,6 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-
-// Thực tế, bạn sẽ cần có lưu trữ dữ liệu (ví dụ: database như MongoDB, PostgreSQL, etc.)
-// API này chỉ là mẫu - bạn cần thay thế bằng code thực tế kết nối đến database
+import { prisma } from "@/lib/prisma";
 export async function POST(request: NextRequest) {
   try {
     const { name, email, password } = await request.json();
@@ -16,20 +13,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Kiểm tra độ dài mật khẩu
-    if (password.length < 8) {
-      return NextResponse.json(
-        { message: "Mật khẩu phải có ít nhất 8 ký tự" },
-        { status: 400 }
-      );
-    }
+    // Kiểm tra độ dài và độ phức tạp của mật khẩu    if (password.length < 8) {      return NextResponse.json(        { message: "Mật khẩu phải có ít nhất 8 ký tự" },        { status: 400 }      );    }        // Kiểm tra mật khẩu có chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;    if (!passwordRegex.test(password)) {      return NextResponse.json(        {           message: "Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 số và 1 ký tự đặc biệt"         },        { status: 400 }      );    }
 
     // Hash mật khẩu
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Lưu thông tin người dùng vào MySQL database
-
-    const prisma = new PrismaClient();
 
     // Kiểm tra xem email đã tồn tại chưa
     const existingUser = await prisma.user.findUnique({
@@ -52,20 +39,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Giả lập kiểm tra email đã tồn tại (thực tế cần kiểm tra trong database)
-    if (email === "example@example.com") {
-      return NextResponse.json(
-        { message: "Email đã được sử dụng" },
-        { status: 400 }
-      );
-    }
-
-    // Giả lập lưu user thành công
-    console.log("Đăng ký người dùng mới:", {
-      name,
-      email,
-      password: "HASHED", // Không bao giờ log mật khẩu thật
-    });
+    // Ghi log thành công mà không tiết lộ thông tin nhạy cảm    console.log("Đăng ký người dùng mới thành công");
 
     return NextResponse.json(
       {

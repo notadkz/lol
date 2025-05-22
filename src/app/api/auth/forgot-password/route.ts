@@ -57,7 +57,8 @@ export async function POST(req: NextRequest) {
     // Trong thực tế, bạn sẽ gửi email với đường dẫn đặt lại mật khẩu
     // sendResetPasswordEmail(user.email, resetUrl);
 
-    console.log("Reset URL (would be sent via email):", resetUrl);
+    // Không log URL đặt lại mật khẩu vì lý do bảo mật
+    console.log("Email đặt lại mật khẩu đã được tạo cho:", user.email);
 
     return NextResponse.json(
       {

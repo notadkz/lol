@@ -4,6 +4,8 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 // import { PrismaAdapter } from "@auth/prisma-adapter"; // Comment out PrismaAdapter
 import { prisma } from "@/lib/prisma";
+// Xóa import CSRF không cần thiết
+// import { csrf } from "@/lib/csrf";
 
 // Định nghĩa kiểu Token thay vì sử dụng JWT
 interface Token {
@@ -32,7 +34,6 @@ async function refreshAccessToken(token: Token) {
     }
 
     const url = "https://oauth2.googleapis.com/token";
-    console.log("Gọi refresh token tới:", url);
 
     const response = await fetch(url, {
       method: "POST",
@@ -57,7 +58,7 @@ async function refreshAccessToken(token: Token) {
     }
 
     if (!response.ok) {
-      console.error("Lỗi làm mới token:", refreshedTokens);
+      console.error("Lỗi làm mới token");
       throw new Error(refreshedTokens.error || "Failed to refresh token");
     }
 
@@ -69,7 +70,7 @@ async function refreshAccessToken(token: Token) {
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
     };
   } catch (error) {
-    console.error("Lỗi làm mới token:", error);
+    console.error("Lỗi làm mới token");
     return {
       ...token,
       error: "RefreshAccessTokenError",
@@ -143,20 +144,38 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 ngày thay vì mặc định (30 phút)
+    maxAge: 8 * 60 * 60, // 8 giờ thay vì 30 ngày
   },
   jwt: {
-    maxAge: 30 * 24 * 60 * 60, // 30 ngày
+    maxAge: 8 * 60 * 60, // 8 giờ
+  },
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "strict", // Thay đổi từ "lax" thành "strict" để tăng cường bảo mật
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+    csrfToken: {
+      name: "next-auth.csrf-token",
+      options: {
+        httpOnly: true,
+        sameSite: "strict", // Bảo vệ CSRF
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
   callbacks: {
     async jwt({ token, account, user }) {
       // Initial sign in
       if (account && user) {
-        console.log("JWT callback - Sign in:", { account, user });
-
         // Thêm thời gian hết hạn
         const nowInSeconds = Math.floor(Date.now() / 1000);
-        const expiryTime = nowInSeconds + 30 * 24 * 60 * 60; // 30 ngày
+        const expiryTime = nowInSeconds + 8 * 60 * 60; // 8 giờ
 
         return {
           ...token,
@@ -164,7 +183,7 @@ export const authOptions: NextAuthOptions = {
           refreshToken: account.refresh_token,
           accessTokenExpires: account.expires_at
             ? account.expires_at * 1000
-            : Date.now() + 30 * 24 * 60 * 60 * 1000,
+            : Date.now() + 8 * 60 * 60 * 1000,
           exp: expiryTime,
           user,
         };
@@ -176,41 +195,21 @@ export const authOptions: NextAuthOptions = {
       const tokenExp = token.exp as number;
       const tokenRemainingTime = tokenExp - nowInSeconds;
 
-      // Nếu token còn hạn dưới 1 ngày hoặc đã hết hạn
-      if (tokenRemainingTime < 24 * 60 * 60) {
-        console.log(
-          "JWT callback - Token sắp hết hạn hoặc đã hết hạn, đang cập nhật..."
-        );
-        // Tạo thời gian mới (thêm 30 ngày)
-        const newExpiryTime = nowInSeconds + 30 * 24 * 60 * 60;
+      // Nếu token còn hạn dưới 1 giờ hoặc đã hết hạn
+      if (tokenRemainingTime < 60 * 60) {
+        // Tạo thời gian mới (thêm 8 giờ)
+        const newExpiryTime = nowInSeconds + 8 * 60 * 60;
         token.exp = newExpiryTime;
-
-        // Log để kiểm tra
-        console.log(
-          "JWT callback - Đã cập nhật thời gian token tới:",
-          new Date(newExpiryTime * 1000).toISOString()
-        );
 
         // Nếu có refresh token, thử refresh
         if (token.refreshToken) {
-          console.log(
-            "JWT callback - Có refresh token, đang làm mới access token"
-          );
           return refreshAccessToken(token);
         }
       }
 
       // Token vẫn còn hiệu lực và không cần làm mới
       if (token.accessTokenExpires && Date.now() < token.accessTokenExpires) {
-        console.log("JWT callback - Token vẫn còn hiệu lực");
         return token;
-      }
-
-      // Token đã hết hạn và không có refresh token
-      if (tokenRemainingTime < 0 && !token.refreshToken) {
-        console.log(
-          "JWT callback - Token đã hết hạn và không có refresh token"
-        );
       }
 
       return token;
